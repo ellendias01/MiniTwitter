@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mini Twitter Metrics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{font-family: Inter, Arial; margin:20px;}
+    .card{box-shadow:0 2px 8px rgba(0,0,0,0.08); padding:16px; border-radius:8px; margin-bottom:16px;}
+    .row{display:flex; gap:16px; flex-wrap:wrap;}
+    canvas{background:#fff; border-radius:6px; padding:8px;}
+  </style>
+</head>
+<body>
+  <h2>Mini Twitter — Metrics Dashboard</h2>
+  <div class="row">
+    <div class="card" style="flex:1 1 300px;">
+      <h4>Overview (last 24h)</h4>
+      <div id="summary">Carregando...</div>
+    </div>
+    <div class="card" style="flex:2 1 600px;">
+      <h4>Pageviews (últimas 24h por hora)</h4>
+      <canvas id="pageviewsChart" width="600" height="200"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = location.origin.includes('file:') ? 'http://localhost:4000' : location.origin; // adjust if needed
+
+    async function fetchSummary(){
+      const res = await fetch(API_BASE + '/metrics/summary');
+      return res.json();
+    }
+
+    async function fetchPageviewsSample(){
+      // For demo we call /metrics/summary and synthesize data.
+      const res = await fetch(API_BASE + '/metrics/summary');
+      const obj = await res.json();
+      // synthesize hourly data (demo)
+      const now = new Date();
+      const labels = [];
+      const data = [];
+      for(let i=23;i>=0;i--){
+        const d = new Date(now.getTime() - i*3600*1000);
+        labels.push(d.getHours()+':00');
+        data.push(Math.floor(Math.random()*6)); // placeholder; replace with real aggregation API
+      }
+      return {labels,data};
+    }
+
+    async function render(){
+      try{
+        const summary = await fetchSummary();
+        document.getElementById('summary').innerHTML = 
+          `<b>Pageviews:</b> ${summary.pageviewsLast24h} &nbsp; <b>Clicks:</b> ${summary.clicksLast24h} &nbsp; <b>Loads:</b> ${summary.loadsLast24h}`;
+        const pv = await fetchPageviewsSample();
+        const ctx = document.getElementById('pageviewsChart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: pv.labels,
+            datasets: [{label:'Pageviews', data: pv.data, fill:true, tension:0.4}]
+          },
+          options: {maintainAspectRatio:false}
+        });
+      }catch(e){
+        console.error(e);
+        document.getElementById('summary').innerText = 'Erro ao carregar resumo. Veja console.';
+      }
+    }
+    render();
+  </script>
+</body>
+</html>
